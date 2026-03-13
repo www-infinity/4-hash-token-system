@@ -1,0 +1,9 @@
+{
+  "page": "index",
+  "components": [
+    "bitcoin-slot",
+    "token-network",
+    "research-feed",
+    "wallet-viewer"
+  ]
+}

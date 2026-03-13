@@ -1,0 +1,5 @@
+{
+  "id": "bitcoin-slot",
+  "label": "Bitcoin Slot Machine",
+  "entry": "slot.js"
+}

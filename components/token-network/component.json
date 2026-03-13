@@ -1,0 +1,5 @@
+{
+  "id": "token-network",
+  "label": "Token Network Visualizer",
+  "entry": "visualizer.js"
+}
