@@ -120,7 +120,13 @@ describe('spinEngine', () => {
       const sources = JSON.parse(fs.readFileSync(path.join(spinDir, 'sources.json'), 'utf8'));
       assert.ok(Array.isArray(sources));
       assert.ok(sources.length > 0);
-      assert.ok(sources.some((s) => s.url && s.url.includes('arxiv.org')));
+      function isArxivUrl(url) {
+        try {
+          const h = new URL(url).hostname;
+          return h === 'arxiv.org' || h.endsWith('.arxiv.org');
+        } catch { return false; }
+      }
+      assert.ok(sources.some((s) => isArxivUrl(s.url)));
     });
   });
 });

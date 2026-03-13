@@ -172,7 +172,7 @@ When a spin is created, the system:
 - reads spin metadata
 - maps the spin into science domains
 - loads the 1,000-term ontology starter bank
-- writes a research article
+- writes a research article (750–1,800 words)
 - stores sources, equations, ontology terms, and token metadata
 - seals the packet with 4 hashes
 

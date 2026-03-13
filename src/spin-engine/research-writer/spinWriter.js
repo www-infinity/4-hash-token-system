@@ -329,7 +329,7 @@ This spin produced a research packet centred on ${(spin.symbols || []).join(', '
 ## Files
 | File | Contents |
 |------|----------|
-| research.md | Full research article (1,000–1,800 words) |
+| research.md | Full research article (750–1,800 words) |
 | sources.json | Source list with relevance scores |
 | equations.json | Key equations and variable glossary |
 | ontology.json | Matched seed terms and topic clusters |
