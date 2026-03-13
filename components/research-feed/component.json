@@ -1,0 +1,5 @@
+{
+  "id": "research-feed",
+  "label": "Research Feed",
+  "entry": "feed.js"
+}

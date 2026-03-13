@@ -1,0 +1,5 @@
+{
+  "id": "wallet-viewer",
+  "label": "Wallet Viewer",
+  "entry": "wallet.js"
+}
