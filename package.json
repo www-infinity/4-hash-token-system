@@ -1,0 +1,14 @@
+{
+  "name": "4-hash-token-system",
+  "version": "1.0.0",
+  "description": "C13B0 4-Hash token system — verifiable research tokens with article, source, package, and metadata hashes",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "keywords": ["hash", "token", "research", "blockchain", "C13B0"],
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "2.4.3"
+  }
+}

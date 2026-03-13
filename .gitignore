@@ -1,0 +1,7 @@
+node_modules/
+*.log
+.env
+users/
+tokens/token_*/
+spins/spin_*/
+ontology_growth.json
