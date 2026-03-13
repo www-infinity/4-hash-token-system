@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>C13B0 — 4-Hash Token System</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 4rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    header h1 {
+      font-size: 2.4rem;
+      letter-spacing: 0.05em;
+      color: #58a6ff;
+    }
+
+    header p {
+      margin-top: 0.6rem;
+      font-size: 1.05rem;
+      color: #8b949e;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 0.8rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 2rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: #1f6feb22;
+      border: 1px solid #1f6feb;
+      color: #58a6ff;
+      letter-spacing: 0.08em;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.2rem;
+      width: 100%;
+      max-width: 900px;
+      margin-bottom: 2.5rem;
+    }
+
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 1.4rem 1.6rem;
+    }
+
+    .card h2 {
+      font-size: 1rem;
+      color: #58a6ff;
+      margin-bottom: 0.5rem;
+    }
+
+    .card p {
+      font-size: 0.88rem;
+      color: #8b949e;
+      line-height: 1.6;
+    }
+
+    .hash-table {
+      width: 100%;
+      max-width: 600px;
+      border-collapse: collapse;
+      margin-bottom: 2.5rem;
+    }
+
+    .hash-table th,
+    .hash-table td {
+      padding: 0.65rem 1rem;
+      border: 1px solid #30363d;
+      font-size: 0.88rem;
+      text-align: left;
+    }
+
+    .hash-table th {
+      background: #161b22;
+      color: #58a6ff;
+      font-weight: 600;
+    }
+
+    .hash-table td { color: #c9d1d9; }
+    .hash-table tr:hover td { background: #1c2128; }
+
+    .token-types {
+      width: 100%;
+      max-width: 600px;
+      border-collapse: collapse;
+      margin-bottom: 2.5rem;
+    }
+
+    .token-types th,
+    .token-types td {
+      padding: 0.55rem 1rem;
+      border: 1px solid #30363d;
+      font-size: 0.88rem;
+      text-align: left;
+    }
+
+    .token-types th {
+      background: #161b22;
+      color: #58a6ff;
+    }
+
+    .token-types td { color: #c9d1d9; }
+    .token-types tr:hover td { background: #1c2128; }
+
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #e6edf3;
+      margin-bottom: 0.9rem;
+      align-self: flex-start;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    pre {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 1.2rem 1.4rem;
+      font-size: 0.82rem;
+      color: #c9d1d9;
+      overflow-x: auto;
+      width: 100%;
+      max-width: 900px;
+      margin-bottom: 2.5rem;
+      line-height: 1.6;
+    }
+
+    footer {
+      margin-top: auto;
+      color: #484f58;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+
+    footer a { color: #58a6ff; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🧱 C13B0 — 4-Hash Token System</h1>
+    <p>Verifiable research tokens with four independent SHA-256 hashes</p>
+    <span class="badge">MIT &nbsp;·&nbsp; Node.js &nbsp;·&nbsp; SHA-256</span>
+  </header>
+
+  <p class="section-title">Core Features</p>
+  <div class="grid">
+    <div class="card">
+      <h2>🔐 4-Hash Integrity</h2>
+      <p>Every token seals article, sources, combined package, and metadata with independent SHA-256 hashes. Any modification is detected instantly.</p>
+    </div>
+    <div class="card">
+      <h2>🌀 Spin Research Writer</h2>
+      <p>Turns every spin event into a permanent science research packet — article, sources, equations, ontology, and token, all in one sealed cartridge.</p>
+    </div>
+    <div class="card">
+      <h2>🔬 Science Seed Bank</h2>
+      <p>1,003 ontology terms across 20 scientific domains power the research writer. New terms grow from arXiv queries without touching the starter bank.</p>
+    </div>
+    <div class="card">
+      <h2>🔑 User Auth</h2>
+      <p>bcrypt-hashed passwords and AES-256-GCM encrypted profile files. No plaintext passwords are ever written to disk.</p>
+    </div>
+  </div>
+
+  <p class="section-title">4-Hash Model</p>
+  <table class="hash-table">
+    <thead>
+      <tr><th>Hash</th><th>Protects</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>HASH1</td><td>Research article only</td></tr>
+      <tr><td>HASH2</td><td>Sources / citations only</td></tr>
+      <tr><td>HASH3</td><td>Combined research package (article + sources)</td></tr>
+      <tr><td>HASH4</td><td>Token identity metadata</td></tr>
+    </tbody>
+  </table>
+
+  <p class="section-title">Token Types</p>
+  <table class="token-types">
+    <thead>
+      <tr><th>Type</th><th>Emoji</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Research</td><td>🧱</td></tr>
+      <tr><td>Discovery</td><td>⭐</td></tr>
+      <tr><td>Economic</td><td>💲</td></tr>
+      <tr><td>Science</td><td>🧬</td></tr>
+      <tr><td>Machine</td><td>⚙️</td></tr>
+      <tr><td>Archive</td><td>📜</td></tr>
+    </tbody>
+  </table>
+
+  <p class="section-title">Quick Start</p>
+  <pre><code>npm install 4-hash-token-system
+
+const { createToken, appendToLedger, renderLedger } = require('./src');
+
+const token = createToken({
+  id: 1054,
+  value: 2593,
+  type: 'Research',
+  date: '2026-03-13',
+  articleText: fs.readFileSync('article.md', 'utf8'),
+  sourcesText: fs.readFileSync('sources.txt', 'utf8'),
+});
+
+appendToLedger(token);
+console.log(renderLedger());</code></pre>
+
+  <footer>
+    <p>
+      <a href="https://github.com/www-infinity/4-hash-token-system">GitHub Repository</a>
+      &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; C13B0
+    </p>
+  </footer>
+
+</body>
+</html>
