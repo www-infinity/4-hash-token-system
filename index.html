@@ -3,240 +3,203 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>C13B0 — 4-Hash Token System</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: #0d1117;
-      color: #e6edf3;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 2rem 1rem 4rem;
-    }
-
-    header {
-      text-align: center;
-      margin-bottom: 3rem;
-    }
-
-    header h1 {
-      font-size: 2.4rem;
-      letter-spacing: 0.05em;
-      color: #58a6ff;
-    }
-
-    header p {
-      margin-top: 0.6rem;
-      font-size: 1.05rem;
-      color: #8b949e;
-    }
-
-    .badge {
-      display: inline-block;
-      margin-top: 0.8rem;
-      padding: 0.25rem 0.75rem;
-      border-radius: 2rem;
-      font-size: 0.78rem;
-      font-weight: 600;
-      background: #1f6feb22;
-      border: 1px solid #1f6feb;
-      color: #58a6ff;
-      letter-spacing: 0.08em;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 1.2rem;
-      width: 100%;
-      max-width: 900px;
-      margin-bottom: 2.5rem;
-    }
-
-    .card {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 10px;
-      padding: 1.4rem 1.6rem;
-    }
-
-    .card h2 {
-      font-size: 1rem;
-      color: #58a6ff;
-      margin-bottom: 0.5rem;
-    }
-
-    .card p {
-      font-size: 0.88rem;
-      color: #8b949e;
-      line-height: 1.6;
-    }
-
-    .hash-table {
-      width: 100%;
-      max-width: 600px;
-      border-collapse: collapse;
-      margin-bottom: 2.5rem;
-    }
-
-    .hash-table th,
-    .hash-table td {
-      padding: 0.65rem 1rem;
-      border: 1px solid #30363d;
-      font-size: 0.88rem;
-      text-align: left;
-    }
-
-    .hash-table th {
-      background: #161b22;
-      color: #58a6ff;
-      font-weight: 600;
-    }
-
-    .hash-table td { color: #c9d1d9; }
-    .hash-table tr:hover td { background: #1c2128; }
-
-    .token-types {
-      width: 100%;
-      max-width: 600px;
-      border-collapse: collapse;
-      margin-bottom: 2.5rem;
-    }
-
-    .token-types th,
-    .token-types td {
-      padding: 0.55rem 1rem;
-      border: 1px solid #30363d;
-      font-size: 0.88rem;
-      text-align: left;
-    }
-
-    .token-types th {
-      background: #161b22;
-      color: #58a6ff;
-    }
-
-    .token-types td { color: #c9d1d9; }
-    .token-types tr:hover td { background: #1c2128; }
-
-    .section-title {
-      font-size: 1.15rem;
-      font-weight: 600;
-      color: #e6edf3;
-      margin-bottom: 0.9rem;
-      align-self: flex-start;
-      max-width: 900px;
-      width: 100%;
-    }
-
-    pre {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 1.2rem 1.4rem;
-      font-size: 0.82rem;
-      color: #c9d1d9;
-      overflow-x: auto;
-      width: 100%;
-      max-width: 900px;
-      margin-bottom: 2.5rem;
-      line-height: 1.6;
-    }
-
-    footer {
-      margin-top: auto;
-      color: #484f58;
-      font-size: 0.8rem;
-      text-align: center;
-    }
-
-    footer a { color: #58a6ff; text-decoration: none; }
-    footer a:hover { text-decoration: underline; }
-  </style>
+  <title>Bitcoin Crusher — ∞ Infinity Slot Machine</title>
+  <meta name="description" content="Spin the Infinity Slot Machine. Every spin crushes Bitcoin and prints a new file to the repo." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
-
-  <header>
-    <h1>🧱 C13B0 — 4-Hash Token System</h1>
-    <p>Verifiable research tokens with four independent SHA-256 hashes</p>
-    <span class="badge">MIT &nbsp;·&nbsp; Node.js &nbsp;·&nbsp; SHA-256</span>
-  </header>
-
-  <p class="section-title">Core Features</p>
-  <div class="grid">
-    <div class="card">
-      <h2>🔐 4-Hash Integrity</h2>
-      <p>Every token seals article, sources, combined package, and metadata with independent SHA-256 hashes. Any modification is detected instantly.</p>
-    </div>
-    <div class="card">
-      <h2>🌀 Spin Research Writer</h2>
-      <p>Turns every spin event into a permanent science research packet — article, sources, equations, ontology, and token, all in one sealed cartridge.</p>
-    </div>
-    <div class="card">
-      <h2>🔬 Science Seed Bank</h2>
-      <p>1,003 ontology terms across 20 scientific domains power the research writer. New terms grow from arXiv queries without touching the starter bank.</p>
-    </div>
-    <div class="card">
-      <h2>🔑 User Auth</h2>
-      <p>bcrypt-hashed passwords and AES-256-GCM encrypted profile files. No plaintext passwords are ever written to disk.</p>
-    </div>
+  <!-- Background -->
+  <div class="bg" aria-hidden="true">
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    <div class="bg-glow bg-glow-3"></div>
   </div>
 
-  <p class="section-title">4-Hash Model</p>
-  <table class="hash-table">
-    <thead>
-      <tr><th>Hash</th><th>Protects</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>HASH1</td><td>Research article only</td></tr>
-      <tr><td>HASH2</td><td>Sources / citations only</td></tr>
-      <tr><td>HASH3</td><td>Combined research package (article + sources)</td></tr>
-      <tr><td>HASH4</td><td>Token identity metadata</td></tr>
-    </tbody>
-  </table>
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="topbar-icon">₿</span>
+      <div>
+        <div class="topbar-kicker">∞ Infinity System</div>
+        <div class="topbar-name">Bitcoin Crusher</div>
+      </div>
+    </div>
+  </header>
 
-  <p class="section-title">Token Types</p>
-  <table class="token-types">
-    <thead>
-      <tr><th>Type</th><th>Emoji</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>Research</td><td>🧱</td></tr>
-      <tr><td>Discovery</td><td>⭐</td></tr>
-      <tr><td>Economic</td><td>💲</td></tr>
-      <tr><td>Science</td><td>🧬</td></tr>
-      <tr><td>Machine</td><td>⚙️</td></tr>
-      <tr><td>Archive</td><td>📜</td></tr>
-    </tbody>
-  </table>
+  <main class="main">
+    <section class="hero">
+      <h1 class="hero-title">∞ Infinity Slot Machine</h1>
+      <p class="hero-sub">Spin the reels. Crush Bitcoin. Every spin prints a new record file into the repo forever.</p>
+    </section>
 
-  <p class="section-title">Quick Start</p>
-  <pre><code>npm install 4-hash-token-system
+    <!-- CONFIG PANEL -->
+    <section class="panel" id="cfgPanel">
+      <div class="panel-head">
+        <span class="panel-title">⚙️ Repo Config</span>
+        <span class="panel-hint">Set once — used for every spin commit</span>
+      </div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <label class="form-label">Owner</label>
+          <input class="form-input" id="cfgOwner" placeholder="www-infinity" />
 
-const { createToken, appendToLedger, renderLedger } = require('./src');
+          <label class="form-label">Repo</label>
+          <input class="form-input" id="cfgRepo" placeholder="Bitcoin-Crusher" />
 
-const token = createToken({
-  id: 1054,
-  value: 2593,
-  type: 'Research',
-  date: '2026-03-13',
-  articleText: fs.readFileSync('article.md', 'utf8'),
-  sourcesText: fs.readFileSync('sources.txt', 'utf8'),
-});
+          <label class="form-label">Branch</label>
+          <input class="form-input" id="cfgBranch" placeholder="main" />
 
-appendToLedger(token);
-console.log(renderLedger());</code></pre>
+        </div>
+        <div class="form-actions">
+          <button class="btn" id="btnSaveCfg">Save Config</button>
+          <button class="btn btn-ghost" id="btnLoadCfg">Load Saved</button>
+          <button class="btn btn-ghost" id="btnClearCfg">Clear</button>
+        </div>
+        <div class="repo-link-row" id="repoLinkRow" style="display:none">
+          <a class="repo-link" id="repoLink" href="#" target="_blank" rel="noopener noreferrer">🔗 Open repo on GitHub</a>
+        </div>
+      </div>
+    </section>
 
-  <footer>
-    <p>
-      <a href="https://github.com/www-infinity/4-hash-token-system">GitHub Repository</a>
-      &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; C13B0
-    </p>
+    <!-- SLOT MACHINE -->
+    <section class="machine-wrap">
+      <div class="machine" id="machine">
+        <!-- Decorative top bar -->
+        <div class="machine-top">
+          <div class="machine-title-bar">
+            <span class="machine-jackpot-light" id="jLight1"></span>
+            <span class="machine-title-text">💎 BITCOIN CRUSHER 💎</span>
+            <span class="machine-jackpot-light" id="jLight2"></span>
+          </div>
+          <div class="machine-ticker" id="ticker">INFINITY SYSTEM ACTIVE — CRUSHING BITCOIN — ∞ ∞ ∞</div>
+        </div>
+
+        <!-- Reels -->
+        <div class="reels-outer">
+          <div class="reels-window">
+            <div class="reels" id="reels">
+              <div class="reel" id="reel0">
+                <div class="reel-strip" id="strip0"></div>
+              </div>
+              <div class="reel-separator"></div>
+              <div class="reel" id="reel1">
+                <div class="reel-strip" id="strip1"></div>
+              </div>
+              <div class="reel-separator"></div>
+              <div class="reel" id="reel2">
+                <div class="reel-strip" id="strip2"></div>
+              </div>
+              <div class="reel-separator"></div>
+              <div class="reel" id="reel3">
+                <div class="reel-strip" id="strip3"></div>
+              </div>
+              <div class="reel-separator"></div>
+              <div class="reel" id="reel4">
+                <div class="reel-strip" id="strip4"></div>
+              </div>
+            </div>
+            <div class="reels-shine" aria-hidden="true"></div>
+            <div class="reels-scanline" aria-hidden="true"></div>
+          </div>
+        </div>
+
+        <!-- Result display -->
+        <div class="result-bar" id="resultBar">
+          <span class="result-text" id="resultText">Pull the lever to spin!</span>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+          <div class="bet-area">
+            <label class="bet-label">SPINS</label>
+            <div class="spin-counter" id="spinCounter">0</div>
+          </div>
+          <button class="spin-btn" id="spinBtn" aria-label="Spin the slot machine">
+            <span class="spin-btn-icon">🎰</span>
+            <span class="spin-btn-label">SPIN &amp; CRUSH</span>
+          </button>
+          <div class="bet-area">
+            <label class="bet-label">SCORE</label>
+            <div class="spin-counter" id="scoreCounter">0</div>
+          </div>
+        </div>
+
+        <!-- Lever -->
+        <div class="lever-wrap" aria-hidden="true">
+          <div class="lever-track">
+            <div class="lever" id="lever">
+              <div class="lever-ball"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Win flash overlay -->
+      <div class="win-overlay" id="winOverlay" aria-live="assertive" aria-atomic="true"></div>
+    </section>
+
+    <!-- CONSOLE / LOG -->
+    <section class="panel">
+      <div class="panel-head">
+        <span class="panel-title">🛰️ Infinity Console</span>
+        <button class="btn btn-xs btn-ghost" id="clearLog">Clear</button>
+      </div>
+      <pre class="console-log" id="consoleLog">System ready. Configure repo + token, then SPIN.\n</pre>
+    </section>
+
+    <!-- HISTORY -->
+    <section class="panel">
+      <div class="panel-head">
+        <span class="panel-title">📜 Spin History (this session)</span>
+        <span class="panel-hint" id="histCount">0 spins</span>
+      </div>
+      <div class="history" id="history"></div>
+    </section>
+
+    <!-- DEVICE IDENTITY -->
+    <section class="panel" id="identityPanel">
+      <div class="panel-head">
+        <span class="panel-title">🪪 Device Identity</span>
+        <span class="panel-hint">Your 8-block signal address</span>
+      </div>
+      <div class="panel-body">
+        <div class="identity-display" id="identityDisplay" title="Your unique 8-block device identifier">
+          <span class="identity-blocks" id="identityBlocks">········</span>
+        </div>
+        <div class="identity-meta" id="identityMeta"></div>
+        <div class="form-actions">
+          <button class="btn btn-ghost" id="btnCopyId">📋 Copy ID</button>
+          <button class="btn btn-ghost" id="btnRegenId">🔄 Regenerate</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI SIGNAL ANALYSIS -->
+    <section class="panel" id="aiPanel">
+      <div class="panel-head">
+        <span class="panel-title">🤖 AI Signal Analysis</span>
+        <span class="panel-hint">Pattern recognition · no external dependencies</span>
+      </div>
+      <div class="panel-body">
+        <div class="ai-status" id="aiStatus">
+          <span class="ai-dot" id="aiDot"></span>
+          <span id="aiStatusText">Awaiting signal data…</span>
+        </div>
+        <pre class="console-log ai-log" id="aiLog">Signal engine ready. Spin to generate pattern data.\n</pre>
+        <div class="ai-prediction" id="aiPrediction"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>∞ Bitcoin Crusher — Infinity System</span>
+    <span>🧱 Every spin is a record. Every record is forever.</span>
   </footer>
 
+  <script src="assets/cfg.js"></script>
+  <script src="assets/app.js"></script>
 </body>
 </html>

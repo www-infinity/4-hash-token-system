@@ -1,0 +1,805 @@
+/* =====================================================================
+   Bitcoin Crusher — ∞ Infinity Slot Machine
+   app.js — spin logic, reel animation, GitHub API commit
+   ===================================================================== */
+(() => {
+  "use strict";
+
+  /* ------------------------------------------------------------------
+     SYMBOLS
+  ------------------------------------------------------------------ */
+  const SYMBOLS = [
+    { emoji: "₿",  label: "BTC",    value: 3,  weight: 8 },
+    { emoji: "💎", label: "DIAM",   value: 5,  weight: 6 },
+    { emoji: "∞",  label: "INF",    value: 8,  weight: 5 },
+    { emoji: "🧱", label: "BLOCK",  value: 4,  weight: 7 },
+    { emoji: "⭐", label: "STAR",   value: 2,  weight: 10 },
+    { emoji: "🍄", label: "MARIO",  value: 6,  weight: 5 },
+    { emoji: "👑", label: "CROWN",  value: 7,  weight: 4 },
+    { emoji: "🚀", label: "PUMP",   value: 9,  weight: 3 },
+    { emoji: "💰", label: "BAG",    value: 4,  weight: 7 },
+    { emoji: "🔥", label: "FIRE",   value: 3,  weight: 9 },
+    { emoji: "🥇", label: "GOLD",   value: 10, weight: 2 },
+    { emoji: "🌕", label: "MOON",   value: 6,  weight: 5 },
+  ];
+
+  const REEL_COUNT = 5;
+  const SYMBOL_HEIGHT = 160; // px — must match CSS
+
+  /* ------------------------------------------------------------------
+     STATE
+  ------------------------------------------------------------------ */
+  let spinCount = 0;
+  let totalScore = 0;
+  let isSpinning = false;
+  let history = [];
+  let cfg = { owner: "", repo: "", branch: "main" };
+
+  /* ------------------------------------------------------------------
+     DOM REFS
+  ------------------------------------------------------------------ */
+  const $ = (id) => document.getElementById(id);
+  const strips = Array.from({ length: REEL_COUNT }, (_, i) => $(`strip${i}`));
+  const spinBtn = $("spinBtn");
+  const spinCounterEl = $("spinCounter");
+  const scoreCounterEl = $("scoreCounter");
+  const resultBar = $("resultBar");
+  const resultText = $("resultText");
+  const consoleLog = $("consoleLog");
+  const historyEl = $("history");
+  const histCountEl = $("histCount");
+  const winOverlay = $("winOverlay");
+  const lever = $("lever");
+
+  /* ------------------------------------------------------------------
+     WEIGHTED RANDOM SYMBOL PICK
+  ------------------------------------------------------------------ */
+  const totalWeight = SYMBOLS.reduce((a, s) => a + s.weight, 0);
+  function pickSymbol() {
+    let r = Math.random() * totalWeight;
+    for (const s of SYMBOLS) {
+      r -= s.weight;
+      if (r <= 0) return s;
+    }
+    return SYMBOLS[SYMBOLS.length - 1];
+  }
+
+  /* ------------------------------------------------------------------
+     REEL INITIALIZATION — fill each strip with many symbols
+  ------------------------------------------------------------------ */
+  function buildStrip(stripEl) {
+    stripEl.innerHTML = "";
+    // fill enough symbols to allow smooth spinning illusion (24 symbols)
+    const count = 24;
+    for (let i = 0; i < count; i++) {
+      const sym = pickSymbol();
+      const div = document.createElement("div");
+      div.className = "reel-symbol";
+      div.innerHTML = `<span>${sym.emoji}</span><span class="sym-label">${sym.label}</span>`;
+      stripEl.appendChild(div);
+    }
+  }
+
+  function initReels() {
+    strips.forEach((strip) => buildStrip(strip));
+  }
+
+  /* ------------------------------------------------------------------
+     SPIN ANIMATION
+  ------------------------------------------------------------------ */
+
+  /** Animate one reel: rapid shuffle then land on finalSymbol */
+  function animateReel(reelEl, stripEl, finalSymbol, delay, duration) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // Rebuild strip with fresh random symbols, final symbol at specific position
+        stripEl.innerHTML = "";
+        const count = 20;
+        for (let i = 0; i < count; i++) {
+          const sym = i === count - 1 ? finalSymbol : pickSymbol();
+          const div = document.createElement("div");
+          div.className = "reel-symbol";
+          div.innerHTML = `<span>${sym.emoji}</span><span class="sym-label">${sym.label}</span>`;
+          stripEl.appendChild(div);
+        }
+
+        // Set initial position far above
+        const startY = -(count - 2) * SYMBOL_HEIGHT;
+        stripEl.style.transition = "none";
+        stripEl.style.transform = `translateY(${startY}px)`;
+
+        // Force reflow
+        void stripEl.offsetHeight;
+
+        // Animate down to center on final symbol (index count-1)
+        // Target Y to show the last symbol centered: translateY(-(count-1)*height + 0) = translateY so bottom item shows
+        // We want position -(count-2)*height so the last symbol is visible
+        const targetY = -(count - 2) * SYMBOL_HEIGHT;
+        // Actually we want to end up showing the final (last) symbol
+        // Strip starts at startY = -(count-2)*height (near last symbol)
+        // Let's start far above and scroll down
+        const farY = -startY; // start from top (symbol 0)
+        stripEl.style.transform = `translateY(${farY}px)`;
+        void stripEl.offsetHeight;
+
+        stripEl.style.transition = `transform ${duration}ms cubic-bezier(.17,.67,.35,1.05)`;
+        // End showing the final symbol: translateY to -(count-1)*SYMBOL_HEIGHT + some offset
+        // The reel window shows a single symbol centered at height=160.
+        // stripEl is a column of count*160 px.  We want the last item centered.
+        // translateY(0) shows item[0]. translateY(-N*160) shows item[N].
+        const endY = -(count - 1) * SYMBOL_HEIGHT;
+        stripEl.style.transform = `translateY(${endY}px)`;
+
+        // Snap the reel to the final symbol (used by both transitionend and the fallback)
+        let settled = false;
+        function settleReel() {
+          if (settled) return;
+          settled = true;
+          stripEl.innerHTML = "";
+          const finalDiv = document.createElement("div");
+          finalDiv.className = "reel-symbol";
+          finalDiv.innerHTML = `<span>${finalSymbol.emoji}</span><span class="sym-label">${finalSymbol.label}</span>`;
+          stripEl.appendChild(finalDiv);
+          stripEl.style.transition = "none";
+          stripEl.style.transform = "translateY(0)";
+          reelEl.classList.remove("spinning");
+          resolve();
+        }
+
+        stripEl.addEventListener("transitionend", settleReel, { once: true });
+
+        // Fallback: guarantee the reel stops even if transitionend never fires
+        // (can happen on tab-blur, browser quirks, or rapid interactions)
+        setTimeout(settleReel, duration + 500);
+      }, delay);
+    });
+  }
+
+  /* ------------------------------------------------------------------
+     EVALUATE RESULT
+  ------------------------------------------------------------------ */
+  function evaluate(symbols) {
+    const counts = {};
+    symbols.forEach((s) => {
+      counts[s.label] = (counts[s.label] || 0) + 1;
+    });
+    const max = Math.max(...Object.values(counts));
+    const total = symbols.reduce((a, s) => a + s.value, 0);
+
+    if (max === 5) {
+      return { tier: "jackpot", label: "🎰 JACKPOT! ALL MATCH!", score: total * 50 };
+    } else if (max === 4) {
+      return { tier: "win-big", label: "💎 MEGA WIN — 4 of a kind!", score: total * 12 };
+    } else if (max === 3) {
+      return { tier: "win-medium", label: "⭐ BIG WIN — 3 of a kind!", score: total * 5 };
+    } else if (max === 2) {
+      return { tier: "win-small", label: "✅ WIN — pair found!", score: total * 2 };
+    } else {
+      return { tier: "lose", label: "🔄 No match. Spin again.", score: 0 };
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     AUTH TOKEN — from CI-injected GHP secret (window.BITCOIN_CRUSHER_TOKEN)
+     The token only needs Actions: Write (fine-grained PAT) or
+     workflow scope (classic PAT) to trigger workflow_dispatch.
+     It does NOT need Contents: Write — the server-side workflow
+     (save-spin.yml) handles the actual repo commit securely.
+  ------------------------------------------------------------------ */
+  function getAuthToken() {
+    return (window.BITCOIN_CRUSHER_TOKEN || "").trim();
+  }
+
+  /* ------------------------------------------------------------------
+     GITHUB API — TRIGGER SAVE-SPIN WORKFLOW (via workflow_dispatch)
+     Uses POST /repos/{owner}/{repo}/actions/workflows/save-spin.yml/dispatches
+     which only requires Actions: Write scope on the token.
+     The actual file commit is performed securely inside save-spin.yml
+     using GITHUB_TOKEN (never exposed to the browser).
+  ------------------------------------------------------------------ */
+
+  async function commitSpinRecord(spinData) {
+    const token = getAuthToken();
+    const { owner, repo, branch } = cfg;
+
+    if (!token || !owner || !repo) {
+      log("⚠️  GHP secret not available — skipping repo commit (local spin only).", "warn");
+      return null;
+    }
+
+    const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    const filename = `spins/spin-${ts}.json`;
+    if (!/^spins\/spin-[\dT-]+\.json$/.test(filename)) {
+      log("❌ Invalid spin filename — aborting commit.", "err");
+      return null;
+    }
+
+    const targetBranch = branch || "main";
+    const dispatchUrl = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/save-spin.yml/dispatches`;
+    const headers = {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    };
+
+    try {
+      log(`📡 Submitting spin → ${filename}`, "");
+
+      const res = await fetch(dispatchUrl, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          ref: targetBranch,
+          inputs: {
+            // GitHub Actions inputs are always strings, so spin_data must be
+            // a JSON-encoded string here; save-spin.yml parses it with JSON.parse().
+            spin_data: JSON.stringify(spinData, null, 2),
+            filename,
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        log(`❌ GitHub API error ${res.status}: ${err.message || res.statusText}`, "err");
+        return null;
+      }
+
+      // workflow_dispatch returns 204 No Content — the run is queued.
+      // sha is null intentionally: the commit hasn't happened yet.
+      // addHistoryItem renders sha:null + url as a "📡 queued" link.
+      const actionsUrl = `https://github.com/${owner}/${repo}/actions`;
+      log(`✅ Spin queued → ${filename} (workflow running…)`, "ok");
+      return { sha: null, url: actionsUrl, filename };
+    } catch (e) {
+      log(`❌ Network error: ${e.message}`, "err");
+      return null;
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     CONFETTI / COIN BURST
+  ------------------------------------------------------------------ */
+  function burstCoins(count = 6) {
+    const machine = $("machine");
+    const emojis = ["💰", "💎", "₿", "⭐", "🥇", "🪙"];
+    for (let i = 0; i < count; i++) {
+      setTimeout(() => {
+        const el = document.createElement("div");
+        el.className = "coin-burst";
+        el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        el.style.left = `${10 + Math.random() * 80}%`;
+        el.style.top = `${20 + Math.random() * 50}%`;
+        machine.appendChild(el);
+        el.addEventListener("animationend", () => el.remove(), { once: true });
+      }, i * 80);
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     LEVER PULL ANIMATION
+  ------------------------------------------------------------------ */
+  function pullLever() {
+    lever.classList.add("pulled");
+    setTimeout(() => lever.classList.remove("pulled"), 500);
+  }
+
+  /* ------------------------------------------------------------------
+     LOGGER
+  ------------------------------------------------------------------ */
+  function log(msg, type = "") {
+    const ts = new Date().toLocaleTimeString();
+    const line = `[${ts}] ${msg}\n`;
+    if (type === "err") {
+      consoleLog.innerHTML += `<span class="log-err">${escHtml(line)}</span>`;
+    } else if (type === "ok") {
+      consoleLog.innerHTML += `<span class="log-ok">${escHtml(line)}</span>`;
+    } else if (type === "warn") {
+      consoleLog.innerHTML += `<span class="log-warn">${escHtml(line)}</span>`;
+    } else {
+      consoleLog.textContent += line;
+    }
+    consoleLog.scrollTop = consoleLog.scrollHeight;
+  }
+
+  function escHtml(s) {
+    return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c]));
+  }
+
+  /* ------------------------------------------------------------------
+     RECEIPT DOWNLOAD
+     Builds a receipt JSON (spin record + commit metadata) and triggers
+     a browser download so the user has a local copy of what was printed
+     into the repo.
+  ------------------------------------------------------------------ */
+  function downloadReceipt(spinData, commitInfo) {
+    const receipt = Object.assign({}, spinData, {
+      receipt: true,
+      commitFilename: commitInfo ? commitInfo.filename : null,
+      commitSha: commitInfo ? commitInfo.sha : null,
+      commitUrl: commitInfo ? commitInfo.url : null,
+    });
+    const blob = new Blob([JSON.stringify(receipt, null, 2) + "\n"], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const ts = new Date(spinData.timestamp).toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `receipt-spin-${ts}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    log(`📥 Receipt downloaded: receipt-spin-${ts}.json`, "ok");
+  }
+
+  /* ------------------------------------------------------------------
+     HISTORY RENDER
+  ------------------------------------------------------------------ */
+  function addHistoryItem(spinData, commitInfo) {
+    history.unshift({ spinData, commitInfo });
+    histCountEl.textContent = `${history.length} spin${history.length !== 1 ? "s" : ""}`;
+
+    const item = document.createElement("div");
+    const isJackpot = spinData.tier === "jackpot";
+    const isWin = spinData.tier !== "lose";
+    item.className = `hist-item${isJackpot ? " jackpot-item" : ""}`;
+
+    const resultClass = isJackpot ? "jackpot" : isWin ? "win" : "";
+    const commitHtml = commitInfo
+      ? commitInfo.sha
+        ? `<div class="hist-commit">📝 <a href="${escHtml(commitInfo.url)}" target="_blank" rel="noreferrer">${escHtml(commitInfo.sha)}</a> — ${escHtml(commitInfo.filename)}</div>`
+        : `<div class="hist-commit">📡 <a href="${escHtml(commitInfo.url)}" target="_blank" rel="noreferrer">queued</a> — ${escHtml(commitInfo.filename)}</div>`
+      : `<div class="hist-commit" style="color:var(--muted2)">⚡ local only</div>`;
+
+    item.innerHTML = `
+      <div class="hist-symbols">${spinData.symbols.join(" ")}</div>
+      <div class="hist-result ${resultClass}">${escHtml(spinData.result)}</div>
+      <div class="hist-time">Spin #${spinData.spinNumber} · +${spinData.score} pts · ${new Date(spinData.timestamp).toLocaleTimeString()}</div>
+      ${commitHtml}
+    `;
+
+    // Download receipt button — added via JS to avoid inline handlers
+    const receiptBtn = document.createElement("button");
+    receiptBtn.className = "btn btn-xs btn-ghost hist-receipt-btn";
+    receiptBtn.textContent = "📥 Download Receipt";
+    receiptBtn.addEventListener("click", () => downloadReceipt(spinData, commitInfo));
+    item.appendChild(receiptBtn);
+
+    if (historyEl.children.length === 0) {
+      historyEl.appendChild(item);
+    } else {
+      historyEl.insertBefore(item, historyEl.firstChild);
+    }
+
+    // Update AI signal analysis after every spin
+    runAiAnalysis();
+  }
+
+  /* ------------------------------------------------------------------
+     MAIN SPIN FUNCTION
+  ------------------------------------------------------------------ */
+  async function spin() {
+    if (isSpinning) return;
+    isSpinning = true;
+    spinBtn.disabled = true;
+
+    // Pull lever
+    pullLever();
+
+    // Clear result bar
+    resultBar.className = "result-bar";
+    resultText.textContent = "Spinning…";
+    winOverlay.textContent = "";
+    winOverlay.className = "win-overlay";
+
+    // Pick final symbols
+    const finalSymbols = Array.from({ length: REEL_COUNT }, () => pickSymbol());
+
+    log(`🎰 SPIN #${spinCount + 1} — rolling reels…`);
+
+    // Animate reels with staggered delays
+    const BASE_DURATION = 900;
+    const promises = strips.map((strip, i) => {
+      const reelEl = document.getElementById(`reel${i}`);
+      reelEl.classList.add("spinning");
+      return animateReel(reelEl, strip, finalSymbols[i], i * 220, BASE_DURATION + i * 180);
+    });
+
+    await Promise.all(promises);
+
+    spinCount++;
+    spinCounterEl.textContent = spinCount;
+
+    // Evaluate
+    const evalResult = evaluate(finalSymbols);
+    totalScore += evalResult.score;
+    scoreCounterEl.textContent = totalScore;
+
+    // Update result bar
+    resultBar.className = `result-bar ${evalResult.tier !== "lose" ? evalResult.tier : ""}`;
+    resultText.textContent = evalResult.label;
+
+    // Win effects
+    if (evalResult.tier === "jackpot") {
+      winOverlay.textContent = "🎰 JACKPOT! 🎰";
+      winOverlay.className = "win-overlay show";
+      burstCoins(14);
+      setTimeout(() => { winOverlay.className = "win-overlay"; }, 2800);
+    } else if (evalResult.tier === "win-big") {
+      burstCoins(8);
+    } else if (evalResult.tier === "win-medium") {
+      burstCoins(4);
+    }
+
+    // Build spin record
+    const spinData = {
+      spinNumber: spinCount,
+      timestamp: new Date().toISOString(),
+      symbols: finalSymbols.map((s) => s.emoji),
+      symbolLabels: finalSymbols.map((s) => s.label),
+      symbolValues: finalSymbols.map((s) => s.value),
+      result: evalResult.label,
+      tier: evalResult.tier,
+      score: evalResult.score,
+      totalScore,
+      repo: cfg.owner && cfg.repo ? `${cfg.owner}/${cfg.repo}` : "unset",
+      deviceId: deviceId.join(" "),
+    };
+
+    log(`   Result: ${evalResult.label} (+${evalResult.score} pts, total: ${totalScore})`);
+
+    // Commit to GitHub
+    const commitInfo = await commitSpinRecord(spinData);
+
+    addHistoryItem(spinData, commitInfo);
+
+    isSpinning = false;
+    spinBtn.disabled = false;
+  }
+
+  /* ------------------------------------------------------------------
+     CONFIG
+  ------------------------------------------------------------------ */
+  function readInputsToCfg() {
+    cfg.owner = $("cfgOwner").value.trim() || cfg.owner;
+    cfg.repo = $("cfgRepo").value.trim() || cfg.repo;
+    cfg.branch = $("cfgBranch").value.trim() || "main";
+    updateRepoLink();
+  }
+
+  function pushCfgToInputs() {
+    $("cfgOwner").value = cfg.owner;
+    $("cfgRepo").value = cfg.repo;
+    $("cfgBranch").value = cfg.branch;
+    updateRepoLink();
+  }
+
+  function updateRepoLink() {
+    const link = $("repoLink");
+    const row = $("repoLinkRow");
+    if (cfg.owner && cfg.repo && link) {
+      link.href = `https://github.com/${cfg.owner}/${cfg.repo}`;
+      if (row) row.style.display = "";
+    } else if (row) {
+      row.style.display = "none";
+    }
+  }
+
+  const CFG_KEY = "bitcoin_crusher_cfg_v1";
+
+  function saveCfg() {
+    readInputsToCfg();
+    const safe = { owner: cfg.owner, repo: cfg.repo, branch: cfg.branch };
+    localStorage.setItem(CFG_KEY, JSON.stringify(safe));
+    log("✅ Config saved.", "ok");
+  }
+
+  function loadCfg() {
+    const raw = localStorage.getItem(CFG_KEY);
+    if (!raw) { log("ℹ️  No saved config found.", "warn"); return; }
+    try {
+      const saved = JSON.parse(raw);
+      Object.assign(cfg, saved);
+      pushCfgToInputs();
+      log(`✅ Config loaded: ${cfg.owner}/${cfg.repo} (branch: ${cfg.branch})`, "ok");
+    } catch (e) {
+      localStorage.removeItem(CFG_KEY);
+      log(`⚠️  Could not load saved config (${e.message}). It has been cleared — please re-enter your settings.`, "warn");
+    }
+  }
+
+  function clearCfg() {
+    localStorage.removeItem(CFG_KEY);
+    cfg = { owner: "", repo: "", branch: "main" };
+    pushCfgToInputs();
+    log("🧼 Config cleared.", "warn");
+  }
+
+  /* ------------------------------------------------------------------
+     TICKER ANIMATION
+  ------------------------------------------------------------------ */
+  function animateTicker() {
+    const ticker = $("ticker");
+    const messages = [
+      "INFINITY SYSTEM ACTIVE — CRUSHING BITCOIN — ∞ ∞ ∞",
+      "EVERY SPIN IS A RECORD. EVERY RECORD IS FOREVER.",
+      "B55 GRAVITY ENGINE ENGAGED — SILVER INDEX RISING",
+      "ACCUMULATING INFINITY ENERGY — SPIN TO GROW",
+      "₿ BTC → 💎 DIAMOND → 🥇 GOLD → ∞ INFINITY",
+    ];
+    let idx = 0;
+    setInterval(() => {
+      idx = (idx + 1) % messages.length;
+      ticker.style.opacity = "0";
+      setTimeout(() => {
+        ticker.textContent = messages[idx];
+        ticker.style.opacity = "0.8";
+      }, 400);
+    }, 4000);
+  }
+
+  /* ------------------------------------------------------------------
+     DEFAULT REPO CONFIG (pre-fill from page URL / meta)
+  ------------------------------------------------------------------ */
+  function prefillFromRepoMeta() {
+    // Try to detect owner/repo from the page's URL (works on GitHub Pages)
+    const m = location.hostname.match(/^([^.]+)\.github\.io$/);
+    if (m) {
+      cfg.owner = cfg.owner || m[1];
+      const pathParts = location.pathname.replace(/^\//, "").split("/");
+      if (pathParts[0] && pathParts[0] !== "") {
+        cfg.repo = cfg.repo || pathParts[0];
+      }
+    }
+    // Hard-coded defaults for this repo
+    cfg.owner = cfg.owner || "www-infinity";
+    cfg.repo = cfg.repo || "Bitcoin-Crusher";
+    cfg.branch = cfg.branch || "main";
+  }
+
+  /* ------------------------------------------------------------------
+     DEVICE IDENTITY — 8-block emoji signal address
+     Derived from a persistent random seed stored in localStorage.
+     Format matches the Infinity signal scheme:
+       Block palette drawn from the Infinity signal set.
+  ------------------------------------------------------------------ */
+  const IDENTITY_KEY = "bitcoin_crusher_device_id_v1";
+
+  // Emoji palette for the 8-block identifier (Infinity signal set)
+  const ID_PALETTE = [
+    "😎","🟦","🟥","🟨","♣️","⬜","🟩","🛸",
+    "🌻","💃","🐴","🎷","🔵","🟠","🟤","🟣",
+    "⭐","💎","₿","🚀","🔥","🥇","🌕","🧱",
+  ];
+
+  /** Generate a random 8-element ID array from the palette */
+  function generateRawId() {
+    const result = [];
+    for (let i = 0; i < 8; i++) {
+      result.push(ID_PALETTE[Math.floor(Math.random() * ID_PALETTE.length)]);
+    }
+    return result;
+  }
+
+  /** Load persisted ID or create a new one */
+  function loadOrCreateDeviceId() {
+    const stored = localStorage.getItem(IDENTITY_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length === 8) return parsed;
+      } catch (_) { /* fall through */ }
+    }
+    const fresh = generateRawId();
+    localStorage.setItem(IDENTITY_KEY, JSON.stringify(fresh));
+    return fresh;
+  }
+
+  let deviceId = loadOrCreateDeviceId();
+
+  function renderDeviceId() {
+    $("identityBlocks").textContent = deviceId.join(" ");
+    const ts = localStorage.getItem(IDENTITY_KEY + "_ts") || new Date().toISOString();
+    $("identityMeta").textContent = `Signal address · registered ${new Date(ts).toLocaleString()}`;
+  }
+
+  function wireIdentity() {
+    $("btnCopyId").addEventListener("click", () => {
+      const text = deviceId.join(" ");
+      navigator.clipboard.writeText(text).then(() => {
+        log(`📋 Device ID copied: ${text}`, "ok");
+      }).catch(() => {
+        log(`📋 Device ID: ${text}`, "ok");
+      });
+    });
+
+    $("btnRegenId").addEventListener("click", () => {
+      deviceId = generateRawId();
+      localStorage.setItem(IDENTITY_KEY, JSON.stringify(deviceId));
+      localStorage.setItem(IDENTITY_KEY + "_ts", new Date().toISOString());
+      renderDeviceId();
+      log("🔄 Device identity regenerated.", "warn");
+      aiLog(`♻️  Device ID updated: ${deviceId.join(" ")}`);
+    });
+
+    $("identityDisplay").addEventListener("click", () => {
+      const text = deviceId.join(" ");
+      navigator.clipboard.writeText(text).catch(() => {});
+    });
+  }
+
+  /* ------------------------------------------------------------------
+     AI SIGNAL ANALYSIS — on-device pattern engine (no external deps)
+     Analyses spin history to detect streaks, hot/cold symbols, and
+     generate a next-spin signal recommendation.
+  ------------------------------------------------------------------ */
+
+  const aiLogEl = $("aiLog");
+  const aiDotEl = $("aiDot");
+  const aiStatusTextEl = $("aiStatusText");
+  const aiPredictionEl = $("aiPrediction");
+
+  function aiLog(msg) {
+    const ts = new Date().toLocaleTimeString();
+    aiLogEl.textContent += `[${ts}] ${msg}\n`;
+    aiLogEl.scrollTop = aiLogEl.scrollHeight;
+  }
+
+  function setAiStatus(state, text) {
+    aiDotEl.className = `ai-dot${state ? " " + state : ""}`;
+    aiStatusTextEl.textContent = text;
+  }
+
+  /** Compute symbol frequency map from history array */
+  function computeFrequency(spins) {
+    const freq = {};
+    for (const { spinData } of spins) {
+      for (const sym of spinData.symbolLabels) {
+        freq[sym] = (freq[sym] || 0) + 1;
+      }
+    }
+    return freq;
+  }
+
+  /** Return top-N entries from a frequency map */
+  function topN(freq, n) {
+    return Object.entries(freq)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, n)
+      .map(([label, count]) => {
+        const sym = SYMBOLS.find((s) => s.label === label);
+        return { label, emoji: sym ? sym.emoji : "?", count };
+      });
+  }
+
+  /** Detect current win streak or lose streak */
+  function detectStreak(spins) {
+    if (!spins.length) return { type: "none", length: 0 };
+    let current = spins[0].spinData.tier !== "lose" ? "win" : "lose";
+    let length = 0;
+    for (const { spinData } of spins) {
+      const isWin = spinData.tier !== "lose";
+      if ((isWin && current === "win") || (!isWin && current === "lose")) {
+        length++;
+      } else {
+        break;
+      }
+    }
+    return { type: current, length };
+  }
+
+  /** Recommend a "signal" based on patterns — no RNG manipulation, advisory only */
+  function buildSignalReport(spins) {
+    if (spins.length < 3) {
+      return "Collecting signal data… spin at least 3 times for analysis.";
+    }
+
+    const freq = computeFrequency(spins);
+    const hot = topN(freq, 3);
+    const streak = detectStreak(spins);
+    const recentTiers = spins.slice(0, 5).map((s) => s.spinData.tier);
+    const winRate = spins.filter((s) => s.spinData.tier !== "lose").length / spins.length;
+    const avgScore = spins.reduce((a, s) => a + s.spinData.score, 0) / spins.length;
+
+    const lines = [];
+    lines.push(`📊 SIGNAL REPORT — ${spins.length} spins analysed`);
+    lines.push(`Win rate: ${(winRate * 100).toFixed(1)}%  |  Avg score/spin: ${avgScore.toFixed(1)}`);
+    lines.push(`Hot symbols: ${hot.map((h) => `${h.emoji}${h.label}(×${h.count})`).join("  ")}`);
+
+    if (streak.length >= 2) {
+      if (streak.type === "win") {
+        lines.push(`🔥 Win streak: ${streak.length} in a row — signal is hot`);
+      } else {
+        lines.push(`❄️  Lose streak: ${streak.length} in a row — pattern shift expected`);
+      }
+    }
+
+    const lastTier = recentTiers[0];
+    if (lastTier === "jackpot") {
+      lines.push("🎰 JACKPOT detected in last spin — peak signal achieved");
+    } else if (lastTier === "win-big") {
+      lines.push("💎 Mega-win energy — signal momentum building");
+    } else if (winRate > 0.55) {
+      lines.push("📈 Signal above average — continue sequence");
+    } else if (winRate < 0.25 && spins.length >= 5) {
+      lines.push("📉 Low signal density — reels recalibrating");
+    }
+
+    lines.push(`\n🪪 Device: ${deviceId.join(" ")}`);
+    return lines.join("\n");
+  }
+
+  function runAiAnalysis() {
+    if (!history.length) return;
+    setAiStatus("thinking", "Analysing signal patterns…");
+
+    // Simulate brief processing delay for UX
+    setTimeout(() => {
+      const report = buildSignalReport(history);
+      aiPredictionEl.textContent = report;
+      aiPredictionEl.className = "ai-prediction visible";
+      setAiStatus("active", `Signal analysis complete · ${history.length} data point${history.length !== 1 ? "s" : ""}`);
+      aiLog(`🤖 Analysis updated after spin #${spinCount}.`);
+    }, 600);
+  }
+
+  /* ------------------------------------------------------------------
+     WIRE EVENTS
+  ------------------------------------------------------------------ */
+  function wireEvents() {
+    spinBtn.addEventListener("click", spin);
+
+    // Also spin on lever click
+    lever.addEventListener("click", () => { if (!isSpinning) spin(); });
+    lever.closest(".lever-wrap").addEventListener("click", () => { if (!isSpinning) spin(); });
+
+    $("btnSaveCfg").addEventListener("click", saveCfg);
+    $("btnLoadCfg").addEventListener("click", loadCfg);
+    $("btnClearCfg").addEventListener("click", clearCfg);
+    $("clearLog").addEventListener("click", () => { consoleLog.textContent = ""; });
+
+    // Keyboard shortcut: space bar to spin
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space" && !e.target.matches("input,textarea,button")) {
+        e.preventDefault();
+        if (!isSpinning) spin();
+      }
+    });
+
+    wireIdentity();
+  }
+
+  /* ------------------------------------------------------------------
+     INIT
+  ------------------------------------------------------------------ */
+  function init() {
+    prefillFromRepoMeta();
+    loadCfg();
+
+    pushCfgToInputs();
+    initReels();
+    animateTicker();
+    wireEvents();
+
+    // Device identity
+    if (!localStorage.getItem(IDENTITY_KEY + "_ts")) {
+      localStorage.setItem(IDENTITY_KEY + "_ts", new Date().toISOString());
+    }
+    renderDeviceId();
+    aiLog(`🪪 Device ID: ${deviceId.join(" ")}`);
+    setAiStatus("", "Signal engine ready — awaiting spin data");
+
+    log("🧱 Bitcoin Crusher — Infinity Slot Machine ready.");
+    if (window.BITCOIN_CRUSHER_TOKEN && cfg.owner && cfg.repo) {
+      log(`✅ Repo: ${cfg.owner}/${cfg.repo} (branch: ${cfg.branch}) — GHP secret active, every spin will be committed.`, "ok");
+    } else if (window.BITCOIN_CRUSHER_TOKEN) {
+      log("✅ GHP secret active — set Owner/Repo above and save to enable auto-commit on each spin.", "ok");
+    } else {
+      log("⚠️  GHP secret not found — spins are local only (no commit will be made).", "warn");
+    }
+    log("🎰  Hit SPIN & CRUSH (or press Space) to start!");
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+})();
